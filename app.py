@@ -112,10 +112,23 @@ def get_chat_history():
             "text": m.contenido_texto
         })
     return jsonify({"historial": historial}), 200
-   
-# ==========================================
-# EL ORQUESTADOR MULTI-AGENTE (HISTORIA 1.3)
-# ==========================================
+ 
+
+@app.route('/api/chat/new', methods=['POST'])
+def start_new_chat():
+    data = request.json
+    usuario_id = data.get('usuario_id')
+    if not usuario_id: 
+        return jsonify({"error": "Falta el identificador de usuario"}), 400
+    
+    proyecto = Proyecto.query.filter_by(usuario_id=usuario_id).first()
+    if proyecto:
+        # Buscamos la conversación abierta y la marcamos como cerrada
+        Conversacion.query.filter_by(proyecto_id=proyecto.id, estado='abierto').update({"estado": "cerrado"})
+        db.session.commit()
+        
+    return jsonify({"success": True, "message": "Contexto liberado con éxito"}), 200
+
 @app.route('/api/generate', methods=['POST'])
 def generate_code():
     data = request.json

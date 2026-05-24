@@ -41,6 +41,12 @@
             <div class="flex-1 overflow-y-auto p-4">
                 <p class="text-gray-400 text-sm font-semibold mb-4">Tus proyectos recientes</p>
             </div>
+            <div class="px-4 mb-4">
+                <button @click="createNewChat" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-md transition-all duration-200">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    Nuevo Chat
+                </button>
+            </div>
         </aside>
 
         <main class="flex-1 flex flex-col bg-gray-900 w-full relative h-full overflow-hidden">
@@ -153,6 +159,24 @@
                 }
             },
             methods: {
+                async createNewChat() {
+                    if (!this.isLoggedIn) return;
+                    try {
+                        const res = await fetch('/api/chat/new', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ usuario_id: this.userId })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            // Vaciamos el historial visual en el navegador
+                            this.chatHistory = [];
+                            console.log("Memoria limpia en PostgreSQL. Listo para nuevo módulo.");
+                        }
+                    } catch (e) {
+                        console.error("Error al limpiar el chat", e);
+                    }
+                },
                 async handleCredentialResponse(response) {
                     try {
                         const res = await fetch('/api/auth/google', {
