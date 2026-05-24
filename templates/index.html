@@ -135,11 +135,31 @@
                 }
             },
             methods: {
-                handleCredentialResponse(response) {
-                    const responsePayload = this.decodeJwtResponse(response.credential);
-                    this.userName = responsePayload.given_name || responsePayload.name;
-                    this.userProfilePic = responsePayload.picture;
-                    this.isLoggedIn = true;
+                async handleCredentialResponse(response) {
+                    try {
+                        // Enviamos el token de seguridad de Google hacia nuestro servidor Flask
+                        const res = await fetch('/api/auth/google', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ token: response.credential })
+                        });
+
+                        const data = await res.json();
+
+                        if (data.success) {
+                            // Actualizamos la interfaz con los datos reales validados por la base de datos
+                            this.userName = data.user.nombre_completo;
+                            this.userProfilePic = data.user.foto_perfil;
+                            this.isLoggedIn = true;
+                            console.log("Sesión persistida y auditada en PostgreSQL para:", data.user.email);
+                        } else {
+                            alert("Error en la autenticación del servidor: " + data.error);
+                        }
+                    } catch (error) {
+                        console.error("Error al conectar con el backend:", error);
+                    }
                 },
                 decodeJwtResponse(token) {
                     let base64Url = token.split('.')[1];
