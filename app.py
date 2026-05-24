@@ -1,5 +1,5 @@
 import os
-from flask import Flask, jsonify
+from flask import Flask, jsonify, render_template
 from dotenv import load_dotenv
 import google.generativeai as genai
 
@@ -11,6 +11,8 @@ app = Flask(__name__)
 
 # 3. Extraer y configurar la API Key
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")  # Para futuras integraciones con Groq
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 
 # Validación de seguridad: Evitar que el servidor arranque si falta la llave
 if not GEMINI_API_KEY or GEMINI_API_KEY == "tu_clave_de_gemini_aqui":
@@ -20,7 +22,10 @@ else:
     genai.configure(api_key=GEMINI_API_KEY)
     print("✅ Configuración de API de IA cargada correctamente.")
 
-# 4. Ruta de prueba para verificar que el servidor está vivo
+@app.route('/')
+def home():
+    return render_template('index.html', google_client_id=GOOGLE_CLIENT_ID)
+
 @app.route('/api/health', methods=['GET'])
 def health_check():
     return jsonify({
