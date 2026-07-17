@@ -1,20 +1,19 @@
-# Usamos una imagen de Python ligera y optimizada
 FROM python:3.10-slim
 
-# Establecemos el directorio de trabajo dentro del contenedor
+# Instalar Nginx
+RUN apt-get update && apt-get install -y nginx && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
-
-# Copiamos solo el archivo de requerimientos primero para aprovechar la caché de Docker
 COPY requirements.txt .
-
-# Instalamos las dependencias y gunicorn para producción
-RUN pip install --no-cache-dir -r requirements.txt gunicorn psycopg2-binary
-
-# Copiamos el resto del código del proyecto
+RUN pip install -r requirements.txt
 COPY . .
 
-# Exponemos el puerto interno de la aplicación
-EXPOSE 5000
+# Copiar configuración de Nginx y activar el sitio
+COPY nginx.conf /etc/nginx/sites-available/default
+RUN ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
 
-# Comando para arrancar la aplicación con Gunicorn (Optimizado para producción)
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "3", "app:app"]
+# Exponer el puerto 80
+EXPOSE 80
+
+# Usamos un script simple para arrancar Nginx en segundo plano y Gunicorn en primer plano
+CMD service nginx start && gunicorn --bind 0.0.0.0:5000 app:app

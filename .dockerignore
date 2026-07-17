@@ -1,0 +1,13 @@
+# flyctl launch added from .gitignore
+# Entorno virtual
+**/venv
+**/.venv
+
+# Variables de entorno y llaves secretas (¡CRÍTICO!)
+**/.env
+
+# Archivos temporales del sistema
+**/__pycache__
+**/*.pyc
+**/.DS_Store
+fly.toml
