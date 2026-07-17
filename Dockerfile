@@ -1,19 +1,21 @@
+# Usamos una versión ligera de Python
 FROM python:3.10-slim
 
-# Instalar Nginx
-RUN apt-get update && apt-get install -y nginx && rm -rf /var/lib/apt/lists/*
-
+# Establecemos el directorio de trabajo
 WORKDIR /app
+
+# 1. Copiamos SOLO los requerimientos primero 
+# (Esto hace que futuros despliegues sean rapidísimos usando la caché de Docker)
 COPY requirements.txt .
-RUN pip install -r requirements.txt
+
+# 2. Instalamos las dependencias
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 3. Copiamos el resto del código del proyecto
 COPY . .
 
-# Copiar configuración de Nginx y activar el sitio
-COPY nginx.conf /etc/nginx/sites-available/default
-RUN ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
+# Exponemos el puerto 8080 (es un estándar muy usado para contenedores)
+EXPOSE 8080
 
-# Exponer el puerto 80
-EXPOSE 80
-
-# Usamos un script simple para arrancar Nginx en segundo plano y Gunicorn en primer plano
-CMD service nginx start && gunicorn --bind 0.0.0.0:5000 app:app
+# Arrancamos directamente tu app de Flask con Gunicorn
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "app:app"]
