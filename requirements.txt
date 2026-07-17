@@ -7,3 +7,6 @@ requests
 google-generativeai
 groq
 python-dotenv
+google-genai
+SQLAlchemy
+psycopg2-binary
