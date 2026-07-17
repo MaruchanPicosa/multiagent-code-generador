@@ -3,311 +3,114 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cosenθ IA - Generador Multi-Agente</title>
+    <meta name="google-client-id" content="{{ google_client_id }}">
+    <title>CosenoIA - Generador de Código</title>
     
-    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
     
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Highlight.js para el coloreado de sintaxis -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
     
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-
-    <style>
-        /* Ajustes finos para los bloques de código y scroll */
-        .prose pre { margin: 0; padding: 1.5rem; background-color: #1d1f27 !important; border-radius: 0.75rem; border: 1px solid #374151; }
-        .prose p { margin-top: 0.5rem; margin-bottom: 0.5rem; }
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #1f2937; }
-        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
-    </style>
+    <!-- Autenticación de Google -->
+    <script src="https://accounts.google.com/gsi/client" ></script>
+    
+    <!-- CSS y JS Personalizado -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
 </head>
-<body class="bg-gray-900 text-white h-screen overflow-hidden">
-    <div id="app" class="flex h-screen overflow-hidden relative">
-        
-        <div v-if="isMobileSidebarOpen" class="fixed inset-0 bg-black/60 z-30 md:hidden transition-opacity duration-300" @click="isMobileSidebarOpen = false"></div>
+<body class="bg-gray-900 text-gray-100 h-screen flex flex-col overflow-hidden">
 
-        <aside :class="['bg-gray-800 border-r border-gray-700 flex flex-col fixed md:static inset-y-0 left-0 z-40 h-full w-72 transition-transform duration-300 ease-in-out', isSidebarPinned ? 'translate-x-0 md:static' : 'md:fixed', (isSidebarHovered || isMobileSidebarOpen) ? 'translate-x-0 shadow-2xl' : '-translate-x-full', !isSidebarPinned ? 'md:absolute md:top-0 md:bottom-0 md:z-40' : '']" @mouseenter="!isSidebarPinned ? isSidebarHovered = true : null" @mouseleave="isSidebarHovered = false">
-            <div class="p-4 border-b border-gray-700 flex justify-between items-center bg-gray-800">
-                <h1 class="text-3xl font-black tracking-tighter select-none"><span class="text-gray-100">Cosen</span><span class="text-blue-400">θ IA</span></h1>
-                <button @click="isSidebarPinned = !isSidebarPinned" class="hidden md:block p-1 rounded text-gray-500 hover:text-white transition-colors">
-                    <svg v-if="isSidebarPinned" class="h-5 w-5 text-blue-500" viewBox="0 0 20 20" fill="currentColor"><path d="M11 17a1 1 0 001.447.894l4-2A1 1 0 0017 15V9.236a1 1 0 00-.553-.894l-4-2A1 1 0 0011 7.236V17z"/><path d="M9 17V7.236a1 1 0 00-1.447-.894l-4 2A1 1 0 003 9.236V15a1 1 0 00.553.894l4 2A1 1 0 009 17z"/></svg>
-                    <svg v-else class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1V5a1 1 0 011-1h2"/></svg>
-                </button>
+    <!-- Barra de Navegación -->
+    <header class="bg-gray-800 border-b border-gray-700 h-14 flex items-center justify-between px-4 shrink-0">
+        <div class="flex items-center gap-4">
+            <h1 class="text-xl font-bold text-blue-400">CosenoIA</h1>
+            <span class="text-xs bg-gray-700 px-2 py-1 rounded text-gray-300">Entorno Multi-Agente</span>
+        </div>
+        <div class="flex items-center gap-3">
+        <button id="btn-new-chat" class="hidden bg-red-600 hover:bg-red-500 text-white px-3 py-1.5 rounded text-sm font-medium transition-colors">
+            Nuevo Proyecto
+        </button>
+        <button id="btn-download" class="hidden bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded text-sm font-medium transition-colors">
+            Descargar .ZIP
+        </button>
+        <div id="google-login-btn"></div>
+        <div id="user-profile" class="hidden flex items-center gap-2">
+            <img id="user-avatar" class="w-8 h-8 rounded-full border border-gray-600" src="" alt="Avatar">
+            <span id="user-name" class="text-sm font-medium text-gray-200"></span>
+        </div>
+    </div>
+    </header>
+
+    <!-- Contenedor Principal -->
+    <main class="flex-1 flex overflow-hidden">
+        
+        <!-- Panel Lateral (Chat y Archivos) -->
+        <aside class="w-full md:w-80 lg:w-96 bg-gray-800 border-r border-gray-700 flex flex-col shrink-0">
+            <!-- Pestañas del Panel Lateral -->
+            <div class="flex border-b border-gray-700 shrink-0">
+                <button id="tab-chat" class="flex-1 py-2 text-sm font-medium bg-gray-700 text-blue-400 border-b-2 border-blue-400">Chat</button>
+                <button id="tab-files" class="flex-1 py-2 text-sm font-medium text-gray-400 hover:text-gray-200">Explorador</button>
             </div>
-            <div class="flex-1 overflow-y-auto p-4">
-                <p class="text-gray-400 text-sm font-semibold mb-4">Tus proyectos recientes</p>
+
+            <!-- Vista de Chat -->
+            <div id="view-chat" class="flex-1 flex flex-col overflow-hidden">
+                <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                    <div class="text-center text-gray-500 text-sm mt-4">Inicia sesión para comenzar a programar.</div>
+                </div>
+                <div class="p-4 bg-gray-800 border-t border-gray-700 shrink-0">
+                    <form id="chat-form" class="flex flex-col gap-2 relative">
+                        <textarea id="chat-input" rows="3" disabled
+                            class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-sm text-gray-100 focus:outline-none focus:border-blue-500 resize-none custom-scrollbar"
+                            placeholder="Ej: Crea una API en Flask con una ruta para usuarios..."></textarea>
+                        <button type="submit" id="chat-submit" disabled class="absolute bottom-2 right-2 bg-blue-600 hover:bg-blue-500 text-white p-1.5 rounded disabled:opacity-50 disabled:cursor-not-allowed">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                        </button>
+                    </form>
+                </div>
             </div>
-            <div class="px-4 mb-4">
-                <button @click="createNewChat" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-md transition-all duration-200">
-                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                    Nuevo Chat
-                </button>
+
+            <!-- Vista de Explorador de Archivos -->
+            <div id="view-files" class="hidden flex-1 flex flex-col overflow-hidden">
+                <div class="p-2 bg-gray-700 text-xs font-bold text-gray-400 uppercase tracking-wider">Archivos del Proyecto</div>
+                <ul id="file-list" class="flex-1 overflow-y-auto py-2 custom-scrollbar text-sm">
+                    <li class="px-4 py-2 text-gray-500">No hay archivos aún.</li>
+                </ul>
             </div>
         </aside>
 
-        <main class="flex-1 flex flex-col bg-gray-900 w-full relative h-full overflow-hidden">
-            <header class="w-full p-4 flex justify-between items-center border-b border-gray-800 z-10 bg-gray-900 shadow-sm">
-                <div class="flex items-center gap-3">
-                    <button class="md:hidden text-gray-400 hover:text-white p-1 rounded" @click="isMobileSidebarOpen = true">
-                        <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
-                    </button>
-                    <h1 class="md:hidden text-2xl font-black tracking-tighter select-none"><span class="text-gray-100">Cosen</span><span class="text-blue-400">θ IA</span></h1>
-                </div>
-                <div v-if="!isSidebarPinned && !isSidebarHovered" class="hidden md:block fixed left-0 top-16 bottom-0 w-4 z-20 cursor-pointer" @mouseenter="isSidebarHovered = true"></div>
-                <div class="bg-gray-800 rounded-full pl-2 pr-4 py-1 flex items-center shadow-lg border border-gray-700 min-h-[48px]">
-                    <div v-show="!isLoggedIn" id="google-login-button"></div>
-                    <div v-show="isLoggedIn" class="flex items-center gap-3">
-                        <img :src="userProfilePic" alt="Perfil" class="w-8 h-8 rounded-full border-2 border-blue-500">
-                        <div class="text-right">
-                            <p class="text-sm font-bold text-white leading-tight" v-text="userName"></p>
-                            <button @click="logout" class="text-red-400 hover:text-red-300 text-xs font-semibold">Cerrar Sesión</button>
-                        </div>
-                    </div>
-                </div>
-            </header>
-
-            <div id="chat-container" class="flex-1 p-6 overflow-y-auto space-y-6 scroll-smooth">
-                
-                <div v-if="chatHistory.length === 0 && !isGenerating" class="h-full flex flex-col items-center justify-center opacity-70">
-                    <svg class="h-24 w-24 text-gray-700 mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                    </svg>
-                    <p class="text-gray-400 text-xl font-medium">¿Qué sistema construiremos hoy?</p>
-                </div>
-
-                <div v-for="(msg, index) in chatHistory" :key="index" :class="['flex w-full', msg.role === 'user' ? 'justify-end' : 'justify-start']">
-                    
-                    <div v-if="msg.role === 'user'" class="max-w-3xl bg-[#2BB2BB] text-white rounded-2xl rounded-tr-none px-5 py-4 shadow-md">
-                        <p class="text-[15px] font-medium leading-relaxed" v-text="msg.text"></p>
-                    </div>
-
-                    <div v-if="msg.role === 'agent'" class="max-w-4xl bg-gray-800 border border-gray-700 text-gray-200 rounded-2xl rounded-tl-none p-6 shadow-xl w-full">
-                        <div class="flex items-center gap-2 mb-4 border-b border-gray-700 pb-3">
-                            <svg class="h-6 w-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v8l9-11h-7z" /></svg>
-                            <span class="font-bold text-blue-400 text-lg tracking-wide">Cosenθ IA</span>
-                        </div>
-                        <div class="prose prose-invert prose-blue max-w-none text-[15px] leading-relaxed" v-html="msg.html"></div>
-                    </div>
-                </div>
-
-                <div v-if="isGenerating" class="flex w-full justify-start">
-                    <div class="max-w-4xl bg-gray-800 border border-gray-700 rounded-2xl rounded-tl-none p-5 shadow-lg flex items-center gap-4">
-                        <svg class="animate-spin h-6 w-6 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        <span class="text-[15px] font-medium text-gray-300 animate-pulse">Orquestando agentes y analizando requerimientos...</span>
-                    </div>
+        <!-- Panel de Visualización (Código / Preview) -->
+        <section class="flex-1 flex flex-col min-w-0 bg-gray-900">
+            <div class="h-10 bg-gray-800 border-b border-gray-700 flex items-center justify-between px-4 shrink-0">
+                <span id="current-filename" class="text-sm text-gray-400 font-mono">selecciona_un_archivo.py</span>
+                <div class="flex gap-2">
+                    <button id="btn-edit-code" class="text-xs bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-1 rounded hidden">Editar a mano</button>
+                    <button id="btn-save-code" class="text-xs bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded hidden">Guardar cambios</button>
+                    <button id="btn-view-code" class="text-xs bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded">Vista Lectura</button>
+                    <button id="btn-view-preview" class="text-xs bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded">Vista Previa Web</button>
                 </div>
             </div>
-
-            <div class="p-6 pt-2 bg-gray-900 border-t border-gray-800 relative z-20">
-                <div class="relative max-w-4xl mx-auto flex items-end gap-2">
-                    <textarea 
-                        v-model="promptText"
-                        :disabled="isGenerating"
-                        @keydown.enter.exact.prevent="generateCode"
-                        class="w-full bg-gray-800 border border-gray-600 rounded-xl p-4 pr-16 text-white focus:outline-none focus:border-[#2BB2BB] focus:ring-1 focus:ring-[#2BB2BB] resize-none shadow-lg transition-all disabled:opacity-50"
-                        rows="2"
-                        placeholder="Define tu stack tecnológico y describe el módulo a generar..."
-                    ></textarea>
-                    <button 
-                        @click="generateCode" 
-                        :disabled="isGenerating || !promptText.trim()"
-                        class="absolute bottom-3 right-3 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white p-2.5 rounded-lg transition-colors shadow-md">
-                        <svg class="h-5 w-5 transform rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
-                    </button>
-                </div>
+            
+            <div id="code-container" class="flex-1 overflow-auto custom-scrollbar relative flex flex-col">
+                <!-- Vista de lectura (coloreada) -->
+                <pre id="pre-viewer" class="m-0 flex-1"><code id="code-viewer" class="h-full p-4 text-sm font-mono bg-transparent"># El código generado aparecerá aquí</code></pre>
+                <!-- Editor manual (texto plano) -->
+                <textarea id="code-editor" class="hidden flex-1 w-full h-full bg-gray-900 text-gray-100 font-mono text-sm p-4 outline-none resize-none custom-scrollbar" spellcheck="false"></textarea>
             </div>
-        </main>
+            
+            <div id="preview-container" class="hidden flex-1 bg-white">
+                <iframe id="web-preview" class="w-full h-full border-0"></iframe>
+            </div>
+        </section>
+    </main>
+
+    <!-- Overlay de Carga -->
+    <div id="loading-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+        <div class="bg-gray-800 p-4 rounded-lg flex items-center gap-3 shadow-xl">
+            <div class="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <span class="text-sm font-medium">Generando código...</span>
+        </div>
     </div>
-
-    <script>
-        const { createApp } = Vue
-
-        createApp({
-            data() {
-                return {
-                    isLoggedIn: false,
-                    userId: null, 
-                    userName: '',
-                    userProfilePic: '',
-                    isSidebarPinned: true,
-                    isSidebarHovered: false,
-                    isMobileSidebarOpen: false,
-                    
-                    // Nuevo Sistema Conversacional
-                    promptText: '',
-                    isGenerating: false,
-                    chatHistory: [] // Arreglo que guarda toda la conversación
-                }
-            },
-            mounted() {
-                window.onload = () => {
-                    google.accounts.id.initialize({
-                        client_id: "{{ google_client_id }}",
-                        callback: this.handleCredentialResponse
-                    });
-                    google.accounts.id.renderButton(
-                        document.getElementById("google-login-button"),
-                        { theme: "filled_black", size: "medium", shape: "pill" }
-                    );
-                }
-            },
-            methods: {
-                async createNewChat() {
-                    if (!this.isLoggedIn) return;
-                    try {
-                        const res = await fetch('/api/chat/new', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ usuario_id: this.userId })
-                        });
-                        const data = await res.json();
-                        if (data.success) {
-                            // Vaciamos el historial visual en el navegador
-                            this.chatHistory = [];
-                            console.log("Memoria limpia en PostgreSQL. Listo para nuevo módulo.");
-                        }
-                    } catch (e) {
-                        console.error("Error al limpiar el chat", e);
-                    }
-                },
-                async handleCredentialResponse(response) {
-                    try {
-                        const res = await fetch('/api/auth/google', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ token: response.credential })
-                        });
-                        const data = await res.json();
-                        if (data.success) {
-                            this.userId = data.user.id;
-                            this.userName = data.user.nombre_completo;
-                            this.userProfilePic = data.user.foto_perfil;
-                            this.isLoggedIn = true;
-                            
-                            // NUEVO: Cargar el chat de la base de datos
-                            this.loadHistory();
-                        } else { alert("Error: " + data.error); }
-                    } catch (error) { console.error(error); }
-                },
-
-                // NUEVA FUNCIÓN: Recuperar el chat de PostgreSQL
-                async loadHistory() {
-                    try {
-                        const res = await fetch(`/api/chat/history?usuario_id=${this.userId}`);
-                        const data = await res.json();
-                        
-                        if (data.historial && data.historial.length > 0) {
-                            this.chatHistory = data.historial.map(msg => ({
-                                role: msg.role,
-                                text: msg.text,
-                                // Solo renderizamos HTML si es el agente
-                                html: msg.role === 'agent' ? marked.parse(msg.text) : ''
-                            }));
-
-                            // Aplicar estilos a los códigos recuperados
-                            this.$nextTick(() => {
-                                hljs.highlightAll();
-                                this.injectCopyButtons();
-                                this.scrollToBottom();
-                            });
-                        }
-                    } catch (e) {
-                        console.error("No se pudo cargar el historial", e);
-                    }
-                },
-                logout() {
-                    this.isLoggedIn = false;
-                    this.userId = null;
-                    this.chatHistory = [];
-                    google.accounts.id.disableAutoSelect();
-                    window.location.reload(); 
-                },
-                scrollToBottom() {
-                    setTimeout(() => {
-                        const container = document.getElementById('chat-container');
-                        if(container) container.scrollTop = container.scrollHeight;
-                    }, 50);
-                },
-                injectCopyButtons() {
-                    // Busca todos los bloques de código y les añade un botón de copiar profesional
-                    document.querySelectorAll('pre').forEach((block) => {
-                        if (block.querySelector('.copy-btn')) return;
-                        
-                        block.style.position = 'relative';
-                        const button = document.createElement('button');
-                        button.className = 'copy-btn absolute top-3 right-3 bg-gray-700 hover:bg-gray-600 text-gray-200 text-xs px-3 py-1.5 rounded-md font-sans transition-colors cursor-pointer border border-gray-600';
-                        button.innerText = 'Copiar Código';
-                        
-                        button.onclick = () => {
-                            // Extrae el texto ignorando el propio botón
-                            const codeToCopy = block.innerText.replace('Copiar Código', '').replace('¡Copiado!', '').trim();
-                            navigator.clipboard.writeText(codeToCopy);
-                            button.innerText = '¡Copiado!';
-                            button.classList.replace('bg-gray-700', 'bg-green-600');
-                            setTimeout(() => {
-                                button.innerText = 'Copiar Código';
-                                button.classList.replace('bg-green-600', 'bg-gray-700');
-                            }, 2000);
-                        };
-                        block.appendChild(button);
-                    });
-                },
-                async generateCode() {
-                    if (!this.promptText.trim()) return;
-                    if (!this.isLoggedIn) { alert("🔒 Inicia sesión con Google para usar Cosenθ IA."); return; }
-
-                    const promptToSend = this.promptText;
-                    
-                    // 1. Mostrar mensaje del usuario en pantalla inmediatamente
-                    this.chatHistory.push({ role: 'user', text: promptToSend, html: '' });
-                    this.promptText = '';
-                    this.isGenerating = true;
-                    this.scrollToBottom();
-
-                    try {
-                        // 2. Llamada al Backend
-                        const response = await fetch('/api/generate', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ prompt: promptToSend, usuario_id: this.userId })
-                        });
-                        const data = await response.json();
-
-                        if (response.ok && data.success) {
-                            // 3. Traducir el Markdown a HTML hermoso y agregarlo al chat
-                            const htmlContent = marked.parse(data.resultado_orquestador);
-                            
-                            this.chatHistory.push({
-                                role: 'agent',
-                                text: data.resultado_orquestador,
-                                html: htmlContent
-                            });
-
-                            // 4. Renderizar colores de sintaxis e inyectar botones al terminar de pintar el DOM
-                            this.$nextTick(() => {
-                                hljs.highlightAll();
-                                this.injectCopyButtons();
-                                this.scrollToBottom();
-                            });
-
-                        } else {
-                            alert("Error del Orquestador: " + (data.error || "Fallo inesperado."));
-                        }
-                    } catch (error) {
-                        alert("No se pudo conectar con el servidor Flask.");
-                    } finally {
-                        this.isGenerating = false;
-                    }
-                }
-            }
-        }).mount('#app')
-    </script>
 </body>
 </html>

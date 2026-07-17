@@ -113,6 +113,7 @@ class RegistroUsoApi(db.Model):
     fecha_peticion = db.Column(db.DateTime, default=datetime.utcnow)
 
 class BloqueCodigo(db.Model):
+
     __tablename__ = 'bloques_codigo'
     id = db.Column(db.Integer, primary_key=True)
     mensaje_id = db.Column(db.Integer, db.ForeignKey('mensajes.id', ondelete='CASCADE'), nullable=False)
@@ -121,3 +122,15 @@ class BloqueCodigo(db.Model):
     version = db.Column(db.Integer, default=1)
     advertencias_seguridad = db.Column(db.Text)
     hash_verificacion = db.Column(db.String(64))
+
+# Añade esto en tu archivo models.py
+
+class ArchivoProyecto(db.Model):
+    __tablename__ = 'archivos_proyecto'
+    id = db.Column(db.Integer, primary_key=True)
+    proyecto_id = db.Column(db.Integer, db.ForeignKey('proyectos.id', ondelete='CASCADE'), nullable=False)
+    ruta_archivo = db.Column(db.String(255), nullable=False)
+    contenido = db.Column(db.Text, nullable=False)
+    ultima_modificacion = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
+
+    proyecto = db.relationship('Proyecto', backref=db.backref('archivos', cascade='all, delete-orphan'))
