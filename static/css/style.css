@@ -40,9 +40,10 @@ hljs { background: transparent !important; padding: 0 !important; }
 /* Limpieza del texto del chat generado por IA */
 .chat-markdown {
     color: #cbd5e1;
-    line-height: 1.6;
-    font-size: 0.875rem;
+    line-height: 1.7;
+    font-size: 1.125rem; /* Equivalente a text-lg en Tailwind */
 }
+
 .chat-markdown p { margin-bottom: 0.8em; }
 .chat-markdown p:last-child { margin-bottom: 0; }
 /* Hacemos que las negritas de la IA no sean tan agresivas */
@@ -57,4 +58,19 @@ hljs { background: transparent !important; padding: 0 !important; }
     margin: 1em 0;
     color: #94a3b8;
     font-style: italic;
+}
+
+/* Animación para la pantalla de bienvenida */
+@keyframes fadeInFloat {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+    animation: fadeInFloat 0.8s ease-out forwards;
+}
+
+/* Brillo adicional para texto */
+.glow-text {
+    filter: drop-shadow(0 0 12px rgba(59, 130, 246, 0.6));
 }

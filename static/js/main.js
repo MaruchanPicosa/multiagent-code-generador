@@ -2,6 +2,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentUser = null;
     let projectFiles = [];
 
+    const welcomeScreen = document.getElementById('welcome-screen');
+
     const googleLoginBtn = document.getElementById('google-login-btn');
     const userProfile = document.getElementById('user-profile');
     const userName = document.getElementById('user-name');
@@ -110,8 +112,18 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (data.success) {
                 currentUser = data.user;
-                googleLoginBtn.classList.add('hidden');
+                
+                // FORMA SEGURA: Escondemos el botón de Google enviándolo fuera de la pantalla
+                // Así no estorba los clics, pero evitamos que su script interno haga crash
+                googleLoginBtn.style.position = 'absolute';
+                googleLoginBtn.style.left = '-9999px';
+                googleLoginBtn.style.pointerEvents = 'none';
+                googleLoginBtn.style.opacity = '0';
+                
+                // Mostramos el perfil y le agregamos el flex de forma manual y segura
                 userProfile.classList.remove('hidden');
+                userProfile.classList.add('flex');
+                
                 userName.textContent = currentUser.nombre_completo;
                 userAvatar.src = currentUser.foto_perfil;
                 
@@ -278,13 +290,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderFileList() {
         fileList.innerHTML = '';
         if (projectFiles.length === 0) {
-            fileList.innerHTML = '<li class="px-4 py-2 text-gray-500">No hay archivos aún.</li>';
+            fileList.innerHTML = '<li class="px-4 py-3 text-gray-500 text-base">No hay archivos aún.</li>';
             return;
         }
 
         projectFiles.forEach(archivo => {
             const li = document.createElement('li');
-            li.className = 'px-4 py-2 hover:bg-gray-600 cursor-pointer flex items-center gap-2 truncate transition-colors';
+            // Cajas más grandes para los archivos, separadas y con letra grande
+            li.className = 'px-6 py-4 border-b border-gray-800 hover:bg-gray-700 cursor-pointer flex items-center gap-4 truncate transition-colors text-gray-200 text-lg';
             
             let icon = '📄';
             if (archivo.ruta.endsWith('.py')) icon = '🐍';
@@ -292,7 +305,8 @@ document.addEventListener('DOMContentLoaded', () => {
             else if (archivo.ruta.endsWith('.js')) icon = '💛';
             else if (archivo.ruta.endsWith('.css')) icon = '🎨';
 
-            li.innerHTML = `<span>${icon}</span> <span class="truncate">${archivo.ruta}</span>`;
+            // Iconos enormes (text-3xl)
+            li.innerHTML = `<span class="text-3xl">${icon}</span> <span class="truncate tracking-wide font-medium">${archivo.ruta}</span>`;
             
             li.addEventListener('click', () => displayCode(archivo));
             fileList.appendChild(li);
@@ -300,6 +314,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function displayCode(archivo) {
+        welcomeScreen.classList.add('hidden'); // Esconde la bienvenida
+        preViewer.classList.remove('hidden');  // Muestra el lienzo de código
         currentFilename.textContent = archivo.ruta;
         
         let lang = 'plaintext';
@@ -397,6 +413,9 @@ document.addEventListener('DOMContentLoaded', () => {
             codeViewer.textContent = '# El código generado aparecerá aquí';
             currentFilename.textContent = '...';
             btnEditCode.classList.add('hidden');
+            welcomeScreen.classList.remove('hidden');
+            preViewer.classList.add('hidden');
+            codeEditor.classList.add('hidden');
         }
     });
 
@@ -461,5 +480,31 @@ document.addEventListener('DOMContentLoaded', () => {
     sidebarOverlay.addEventListener('click', () => {
         sidebar.classList.add('-translate-x-full');
         sidebarOverlay.classList.add('hidden');
+
+    });
+    // LÓGICA DE CERRAR SESIÓN (Delegación de eventos a prueba de fallos)
+    document.addEventListener('click', async (e) => {
+        // Buscamos si el clic ocurrió dentro del botón #btn-logout o en su icono
+        const botonSalir = e.target.closest('#btn-logout');
+        
+        if (botonSalir) {
+            // Revisamos si la estructura del Modal personalizado sigue en tu HTML
+            const modalExiste = document.getElementById('custom-modal');
+            
+            if (modalExiste) {
+                // Usamos el diseño oscuro bonito
+                const confirmar = await showModal(
+                    "Cerrar Sesión", 
+                    "¿Estás segura de que deseas salir? Tu progreso actual está guardado.", 
+                    "confirm"
+                );
+                if (confirmar) window.location.reload();
+            } else {
+                // Plan de respaldo nativo si el modal se borró accidentalmente del HTML
+                if (confirm("¿Estás segura de que deseas salir? Tu progreso actual está guardado.")) {
+                    window.location.reload();
+                }
+            }
+        }
     });
 });
