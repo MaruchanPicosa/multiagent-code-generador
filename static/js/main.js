@@ -37,6 +37,55 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const clientIdMeta = document.querySelector('meta[name="google-client-id"]').content;
     
+    function showModal(title, message, type = 'alert', defaultValue = '') {
+        return new Promise((resolve) => {
+            const modal = document.getElementById('custom-modal');
+            const modalContent = document.getElementById('modal-content');
+            const inputEl = document.getElementById('modal-input');
+            const btnCancel = document.getElementById('modal-btn-cancel');
+            const btnConfirm = document.getElementById('modal-btn-confirm');
+
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-message').textContent = message;
+            
+            inputEl.value = defaultValue;
+            inputEl.classList.add('hidden');
+            btnCancel.classList.add('hidden');
+
+            if (type === 'prompt') {
+                inputEl.classList.remove('hidden');
+                btnCancel.classList.remove('hidden');
+            } else if (type === 'confirm') {
+                btnCancel.classList.remove('hidden');
+            }
+
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modalContent.classList.remove('scale-95');
+                if (type === 'prompt') inputEl.focus();
+            }, 10);
+
+            const closeModal = () => {
+                modal.classList.add('opacity-0');
+                modalContent.classList.add('scale-95');
+                setTimeout(() => modal.classList.add('hidden'), 200);
+                btnConfirm.onclick = null;
+                btnCancel.onclick = null;
+            };
+
+            btnConfirm.onclick = () => {
+                closeModal();
+                resolve(type === 'prompt' ? inputEl.value : true);
+            };
+
+            btnCancel.onclick = () => {
+                closeModal();
+                resolve(type === 'prompt' ? null : false);
+            };
+        });
+    }
+
     if (clientIdMeta && clientIdMeta !== "None" && clientIdMeta !== "") {
         google.accounts.id.initialize({
             client_id: clientIdMeta,
@@ -116,16 +165,6 @@ document.addEventListener('DOMContentLoaded', () => {
         tabChat.classList.add('text-gray-400', 'hover:text-gray-200');
     });
 
-    btnViewCode.addEventListener('click', () => {
-        codeContainer.classList.remove('hidden');
-        previewContainer.classList.add('hidden');
-    });
-
-    btnViewPreview.addEventListener('click', () => {
-        codeContainer.classList.add('hidden');
-        previewContainer.classList.remove('hidden');
-        renderWebPreview();
-    });
 
     function renderWebPreview() {
         let htmlFile = projectFiles.find(f => f.ruta.endsWith('.html'));
@@ -196,14 +235,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function appendMessage(role, text) {
         const div = document.createElement('div');
-        div.className = `p-3 rounded-lg text-sm whitespace-pre-wrap ${role === 'user' ? 'bg-blue-900/30 ml-4 border border-blue-800' : 'bg-gray-700 mr-4 border border-gray-600'}`;
         
-        let displayText = text;
-        if (role === 'agent') {
-             displayText = text.replace(/```[\s\S]*?```/g, '[Código procesado y actualizado en el Explorador]');
+        if (role === 'user') {
+            div.className = 'p-3 rounded-lg text-sm bg-[#1f2937] border border-gray-700 ml-8 text-gray-200 whitespace-pre-wrap';
+            div.textContent = text;
+        } else {
+            div.className = 'p-0 text-sm mr-8 text-gray-300 chat-markdown';
+            // Sustituimos los bloques de código crudos por una cita limpia
+            let cleanText = text.replace(/```[\s\S]*?```/g, '\n> ✦ **Código procesado** y sincronizado en el explorador de archivos.\n');
+            // Usamos la librería marked para formatear el texto a HTML limpio
+            div.innerHTML = marked.parse(cleanText);
         }
 
-        div.textContent = displayText;
         chatMessages.appendChild(div);
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
@@ -294,23 +337,27 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             
             if(res.ok) {
-                // Actualizamos la memoria del frontend
                 const archivoIndex = projectFiles.findIndex(f => f.ruta === rutaActual);
                 if (archivoIndex !== -1) projectFiles[archivoIndex].contenido = nuevoContenido;
-                
-                // Volvemos al modo vista
                 displayCode({ruta: rutaActual, contenido: nuevoContenido});
-                alert("Cambios guardados correctamente.");
+                
+                // Reemplazo del alert
+                await showModal("Archivo Guardado", "Los cambios manuales se han aplicado correctamente.", "alert");
             }
         } catch (error) {
-            alert("Error al guardar el archivo.");
+            await showModal("Error", "Ocurrió un problema al guardar el archivo.", "alert");
         }
     });
 
-    // 6. Lógica de NUEVO PROYECTO:
     btnNewChat.addEventListener('click', async () => {
         if (!currentUser) return;
-        const confirmar = confirm("¿Estás segura? Esto borrará el chat actual y los archivos generados para iniciar un proyecto en blanco y ahorrar memoria.");
+        
+        // Reemplazo del confirm feo
+        const confirmar = await showModal(
+            "¿Iniciar nuevo proyecto?", 
+            "Esto borrará el chat y los archivos actuales de la vista para iniciar un lienzo en blanco. ¿Deseas continuar?", 
+            "confirm"
+        );
         
         if (confirmar) {
             await fetch('/api/chat/new', {
@@ -319,28 +366,59 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({ usuario_id: currentUser.id })
             });
             
-            // Limpiamos la interfaz
-            chatMessages.innerHTML = '<div class="text-center text-gray-500 text-sm mt-4">Nuevo proyecto iniciado. Comienza a describir lo que necesitas.</div>';
+            chatMessages.innerHTML = '';
+            appendMessage('agent', 'Lienzo limpio. Describe el nuevo proyecto o la base de datos que deseas crear.');
             projectFiles = [];
             renderFileList();
             codeViewer.textContent = '# El código generado aparecerá aquí';
-            currentFilename.textContent = 'selecciona_un_archivo.py';
+            currentFilename.textContent = '...';
             btnEditCode.classList.add('hidden');
         }
     });
 
-    btnDownload.addEventListener('click', () => {
+    btnDownload.addEventListener('click', async () => {
         if (!currentUser) return;
         if (projectFiles.length === 0) {
-            alert("No hay archivos para descargar aún.");
+            await showModal("Proyecto Vacío", "No hay archivos generados para descargar aún.", "alert");
             return;
         }
         
-        // Aquí le preguntamos el nombre al usuario:
-        const nombreElegido = prompt("¿Qué nombre le quieres poner a tu proyecto?", "Proyecto_Cosméticos");
+        // Reemplazo del prompt feo por el input personalizado
+        const nombreElegido = await showModal(
+            "Exportar Proyecto", 
+            "Asigna un nombre sin espacios para tu archivo .zip:", 
+            "prompt", 
+            "Mi_Proyecto"
+        );
         
-        if (nombreElegido !== null) { // Si no le dio a cancelar
+        if (nombreElegido !== null && nombreElegido.trim() !== "") {
             window.location.href = `/api/download/${currentUser.id}?nombre=${encodeURIComponent(nombreElegido)}`;
         }
     });
-});
+    // Modificamos un poco el cambio de pestañas del código para cambiar estilos del botón activo
+    btnViewCode.addEventListener('click', () => {
+        codeContainer.classList.remove('hidden');
+        previewContainer.classList.add('hidden');
+        btnViewCode.classList.replace('text-gray-400', 'text-blue-400');
+        btnViewCode.classList.replace('border-gray-600', 'border-blue-500');
+        btnViewCode.classList.add('bg-gray-800');
+        
+        btnViewPreview.classList.replace('text-blue-400', 'text-gray-400');
+        btnViewPreview.classList.replace('border-blue-500', 'border-gray-600');
+        btnViewPreview.classList.remove('bg-gray-800');
+    });
+
+    btnViewPreview.addEventListener('click', () => {
+        codeContainer.classList.add('hidden');
+        previewContainer.classList.remove('hidden');
+        renderWebPreview();
+        
+        btnViewPreview.classList.replace('text-gray-400', 'text-blue-400');
+        btnViewPreview.classList.replace('border-gray-600', 'border-blue-500');
+        btnViewPreview.classList.add('bg-gray-800');
+        
+        btnViewCode.classList.replace('text-blue-400', 'text-gray-400');
+        btnViewCode.classList.replace('border-blue-500', 'border-gray-600');
+        btnViewCode.classList.remove('bg-gray-800');
+    });
+    });

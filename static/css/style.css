@@ -28,3 +28,33 @@ hljs {
 .whitespace-pre-wrap {
     white-space: pre-wrap;
 }
+
+/* Custom Scrollbar suave */
+.custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+
+hljs { background: transparent !important; padding: 0 !important; }
+
+/* Limpieza del texto del chat generado por IA */
+.chat-markdown {
+    color: #cbd5e1;
+    line-height: 1.6;
+    font-size: 0.875rem;
+}
+.chat-markdown p { margin-bottom: 0.8em; }
+.chat-markdown p:last-child { margin-bottom: 0; }
+/* Hacemos que las negritas de la IA no sean tan agresivas */
+.chat-markdown strong { color: #f1f5f9; font-weight: 600; }
+.chat-markdown ul, .chat-markdown ol { margin-left: 1rem; margin-bottom: 0.8em; list-style-type: disc; color: #94a3b8; }
+/* Notificación sutil de código actualizado */
+.chat-markdown blockquote {
+    border-left: 3px solid #3b82f6;
+    background: rgba(59, 130, 246, 0.05);
+    padding: 8px 12px;
+    border-radius: 0 4px 4px 0;
+    margin: 1em 0;
+    color: #94a3b8;
+    font-style: italic;
+}

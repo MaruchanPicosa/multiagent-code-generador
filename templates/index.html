@@ -4,112 +4,119 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="google-client-id" content="{{ google_client_id }}">
-    <title>CosenoIA - Generador de Código</title>
+    <title>CosenoIA - Entorno de Desarrollo</title>
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Highlight.js para el coloreado de sintaxis -->
+    <!-- Librerías: Highlight para el código y Marked para limpiar el texto del chat -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     
-    <!-- Autenticación de Google -->
-    <script src="https://accounts.google.com/gsi/client" ></script>
+    <script src="https://accounts.google.com/gsi/client"></script>
     
-    <!-- CSS y JS Personalizado -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
 </head>
-<body class="bg-gray-900 text-gray-100 h-screen flex flex-col overflow-hidden">
+<body class="bg-[#111827] text-gray-100 h-screen flex flex-col overflow-hidden font-sans">
 
-    <!-- Barra de Navegación -->
-    <header class="bg-gray-800 border-b border-gray-700 h-14 flex items-center justify-between px-4 shrink-0">
+    <!-- Barra de Navegación Responsiva -->
+    <header class="bg-[#1f2937] border-b border-gray-800 p-3 flex flex-wrap items-center justify-between gap-3 shrink-0">
         <div class="flex items-center gap-4">
-            <h1 class="text-xl font-bold text-blue-400">CosenoIA</h1>
-            <span class="text-xs bg-gray-700 px-2 py-1 rounded text-gray-300">Entorno Multi-Agente</span>
+            <h1 class="text-xl font-bold tracking-wide text-gray-200">Coseno<span class="text-blue-500">IA</span></h1>
         </div>
-        <div class="flex items-center gap-3">
-        <button id="btn-new-chat" class="hidden bg-red-600 hover:bg-red-500 text-white px-3 py-1.5 rounded text-sm font-medium transition-colors">
-            Nuevo Proyecto
-        </button>
-        <button id="btn-download" class="hidden bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded text-sm font-medium transition-colors">
-            Descargar .ZIP
-        </button>
-        <div id="google-login-btn"></div>
-        <div id="user-profile" class="hidden flex items-center gap-2">
-            <img id="user-avatar" class="w-8 h-8 rounded-full border border-gray-600" src="" alt="Avatar">
-            <span id="user-name" class="text-sm font-medium text-gray-200"></span>
+        
+        <div class="flex items-center gap-2 overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
+            <button id="btn-new-chat" class="hidden px-4 py-1.5 rounded-md text-xs font-medium border border-gray-600 bg-gray-800 text-gray-300 hover:border-rose-500 hover:text-rose-400 transition-all whitespace-nowrap">
+                Nuevo Proyecto
+            </button>
+            <button id="btn-download" class="hidden px-4 py-1.5 rounded-md text-xs font-medium border border-gray-600 bg-gray-800 text-gray-300 hover:border-emerald-500 hover:text-emerald-400 transition-all whitespace-nowrap">
+                Exportar .ZIP
+            </button>
+            <div id="google-login-btn" class="shrink-0"></div>
+            <div id="user-profile" class="hidden flex items-center gap-2 shrink-0 bg-gray-800 px-3 py-1 rounded-full border border-gray-700">
+                <img id="user-avatar" class="w-6 h-6 rounded-full" src="" alt="Avatar">
+                <span id="user-name" class="text-xs font-medium text-gray-300"></span>
+            </div>
         </div>
-    </div>
     </header>
 
-    <!-- Contenedor Principal -->
-    <main class="flex-1 flex overflow-hidden">
+    <!-- Contenedor Principal (Flex Responsivo) -->
+    <main class="flex-1 flex flex-col md:flex-row overflow-hidden">
         
-        <!-- Panel Lateral (Chat y Archivos) -->
-        <aside class="w-full md:w-80 lg:w-96 bg-gray-800 border-r border-gray-700 flex flex-col shrink-0">
-            <!-- Pestañas del Panel Lateral -->
-            <div class="flex border-b border-gray-700 shrink-0">
-                <button id="tab-chat" class="flex-1 py-2 text-sm font-medium bg-gray-700 text-blue-400 border-b-2 border-blue-400">Chat</button>
-                <button id="tab-files" class="flex-1 py-2 text-sm font-medium text-gray-400 hover:text-gray-200">Explorador</button>
+        <!-- Panel Lateral (Se oculta parcialmente en móviles) -->
+        <aside class="w-full md:w-80 lg:w-96 bg-[#1f2937] border-b md:border-b-0 md:border-r border-gray-800 flex flex-col shrink-0">
+            <div class="flex border-b border-gray-800 shrink-0">
+                <button id="tab-chat" class="flex-1 py-3 text-xs uppercase tracking-wider font-semibold bg-[#111827] text-blue-400 border-t-2 border-blue-500 transition-colors">Interacción</button>
+                <button id="tab-files" class="flex-1 py-3 text-xs uppercase tracking-wider font-semibold text-gray-500 hover:text-gray-300 border-t-2 border-transparent transition-colors">Archivos</button>
             </div>
 
-            <!-- Vista de Chat -->
+            <!-- Chat -->
             <div id="view-chat" class="flex-1 flex flex-col overflow-hidden">
-                <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
-                    <div class="text-center text-gray-500 text-sm mt-4">Inicia sesión para comenzar a programar.</div>
-                </div>
-                <div class="p-4 bg-gray-800 border-t border-gray-700 shrink-0">
-                    <form id="chat-form" class="flex flex-col gap-2 relative">
-                        <textarea id="chat-input" rows="3" disabled
-                            class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-sm text-gray-100 focus:outline-none focus:border-blue-500 resize-none custom-scrollbar"
-                            placeholder="Ej: Crea una API en Flask con una ruta para usuarios..."></textarea>
-                        <button type="submit" id="chat-submit" disabled class="absolute bottom-2 right-2 bg-blue-600 hover:bg-blue-500 text-white p-1.5 rounded disabled:opacity-50 disabled:cursor-not-allowed">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar"></div>
+                <div class="p-3 bg-[#1f2937] border-t border-gray-800 shrink-0">
+                    <form id="chat-form" class="relative">
+                        <textarea id="chat-input" rows="2" disabled
+                            class="w-full bg-[#111827] border border-gray-700 rounded-lg py-3 px-4 pr-12 text-sm text-gray-200 focus:outline-none focus:border-blue-500 resize-none custom-scrollbar transition-colors"
+                            placeholder="Describe la funcionalidad que necesitas..."></textarea>
+                        <button type="submit" id="chat-submit" disabled class="absolute bottom-4 right-3 text-gray-400 hover:text-blue-500 disabled:opacity-30 transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
                         </button>
                     </form>
                 </div>
             </div>
 
-            <!-- Vista de Explorador de Archivos -->
+            <!-- Archivos -->
             <div id="view-files" class="hidden flex-1 flex flex-col overflow-hidden">
-                <div class="p-2 bg-gray-700 text-xs font-bold text-gray-400 uppercase tracking-wider">Archivos del Proyecto</div>
-                <ul id="file-list" class="flex-1 overflow-y-auto py-2 custom-scrollbar text-sm">
-                    <li class="px-4 py-2 text-gray-500">No hay archivos aún.</li>
-                </ul>
+                <ul id="file-list" class="flex-1 overflow-y-auto py-2 custom-scrollbar text-sm"></ul>
             </div>
         </aside>
 
-        <!-- Panel de Visualización (Código / Preview) -->
-        <section class="flex-1 flex flex-col min-w-0 bg-gray-900">
-            <div class="h-10 bg-gray-800 border-b border-gray-700 flex items-center justify-between px-4 shrink-0">
-                <span id="current-filename" class="text-sm text-gray-400 font-mono">selecciona_un_archivo.py</span>
-                <div class="flex gap-2">
-                    <button id="btn-edit-code" class="text-xs bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-1 rounded hidden">Editar a mano</button>
-                    <button id="btn-save-code" class="text-xs bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded hidden">Guardar cambios</button>
-                    <button id="btn-view-code" class="text-xs bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded">Vista Lectura</button>
-                    <button id="btn-view-preview" class="text-xs bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded">Vista Previa Web</button>
+        <!-- Panel de Código -->
+        <section class="flex-1 flex flex-col min-w-0 bg-[#111827]">
+            <div class="min-h-[40px] bg-[#1f2937] border-b border-gray-800 flex flex-wrap items-center justify-between px-4 py-2 gap-2 shrink-0">
+                <span id="current-filename" class="text-sm text-gray-400 font-mono truncate max-w-[50%]">...</span>
+                <div class="flex gap-2 overflow-x-auto flex-shrink-0 custom-scrollbar pb-1 sm:pb-0">
+                    <button id="btn-edit-code" class="text-xs px-3 py-1 rounded border border-gray-600 text-gray-400 hover:text-amber-400 hover:border-amber-500 transition-colors hidden whitespace-nowrap">Editar a mano</button>
+                    <button id="btn-save-code" class="text-xs px-3 py-1 rounded border border-gray-600 text-gray-400 hover:text-emerald-400 hover:border-emerald-500 transition-colors hidden whitespace-nowrap">Guardar cambios</button>
+                    <button id="btn-view-code" class="text-xs px-3 py-1 rounded border border-gray-600 text-blue-400 border-blue-500 bg-gray-800 transition-colors whitespace-nowrap">Código</button>
+                    <button id="btn-view-preview" class="text-xs px-3 py-1 rounded border border-gray-600 text-gray-400 hover:text-purple-400 hover:border-purple-500 transition-colors whitespace-nowrap">Vista Web</button>
                 </div>
             </div>
             
             <div id="code-container" class="flex-1 overflow-auto custom-scrollbar relative flex flex-col">
-                <!-- Vista de lectura (coloreada) -->
-                <pre id="pre-viewer" class="m-0 flex-1"><code id="code-viewer" class="h-full p-4 text-sm font-mono bg-transparent"># El código generado aparecerá aquí</code></pre>
-                <!-- Editor manual (texto plano) -->
-                <textarea id="code-editor" class="hidden flex-1 w-full h-full bg-gray-900 text-gray-100 font-mono text-sm p-4 outline-none resize-none custom-scrollbar" spellcheck="false"></textarea>
+                <pre id="pre-viewer" class="m-0 flex-1"><code id="code-viewer" class="h-full p-4 text-sm font-mono bg-transparent text-gray-300"># Selecciona un archivo en el explorador</code></pre>
+                <textarea id="code-editor" class="hidden flex-1 w-full h-full bg-[#111827] text-gray-200 font-mono text-sm p-4 outline-none resize-none custom-scrollbar" spellcheck="false"></textarea>
             </div>
             
             <div id="preview-container" class="hidden flex-1 bg-white">
-                <iframe id="web-preview" class="w-full h-full border-0"></iframe>
+                <iframe id="web-preview" class="w-full h-full border-0 bg-white"></iframe>
             </div>
         </section>
     </main>
 
-    <!-- Overlay de Carga -->
-    <div id="loading-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-        <div class="bg-gray-800 p-4 rounded-lg flex items-center gap-3 shadow-xl">
-            <div class="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-            <span class="text-sm font-medium">Generando código...</span>
+    <!-- Overlay de Carga Mejorado -->
+    <div id="loading-overlay" class="hidden fixed inset-0 bg-[#111827]/80 backdrop-blur-sm z-40 flex items-center justify-center transition-opacity">
+        <div class="flex flex-col items-center gap-3">
+            <div class="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <span class="text-sm font-medium text-gray-300 tracking-widest uppercase">Procesando</span>
+        </div>
+    </div>
+
+    <!-- SISTEMA DE MODALES PERSONALIZADOS (POPUPS) -->
+    <div id="custom-modal" class="hidden fixed inset-0 bg-[#111827]/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 transition-opacity duration-200">
+        <div class="bg-[#1f2937] border border-gray-700 rounded-lg shadow-2xl w-full max-w-md transform scale-95 transition-transform duration-200" id="modal-content">
+            <div class="p-6">
+                <h3 id="modal-title" class="text-lg font-semibold text-gray-100 mb-2 tracking-wide">Título</h3>
+                <p id="modal-message" class="text-sm text-gray-400 mb-5 leading-relaxed">Mensaje</p>
+                
+                <input type="text" id="modal-input" class="hidden w-full bg-[#111827] border border-gray-600 rounded-md p-2.5 text-sm text-gray-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 mb-5 transition-all">
+                
+                <div class="flex justify-end gap-3">
+                    <button id="modal-btn-cancel" class="hidden px-4 py-2 rounded-md text-sm font-medium border border-gray-600 text-gray-400 hover:text-gray-200 hover:bg-gray-700 transition-colors">Cancelar</button>
+                    <button id="modal-btn-confirm" class="px-4 py-2 rounded-md text-sm font-medium bg-blue-600 text-white hover:bg-blue-500 transition-colors">Aceptar</button>
+                </div>
+            </div>
         </div>
     </div>
 </body>
