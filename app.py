@@ -210,7 +210,7 @@ def generate_code():
         db.session.flush()
 
         # Extraer bloques de código, incluyendo su ruta (Ej: /// Archivo: src/main.js ///)
-        patron_bloques = r'///\s*Archivo:\s*(.*?)\s*///\s*```(\w+)?\n(.*?)```'
+        patron_bloques = r'///\s*Archivo:\s*([^\n]+?)\s*///\s*```(\w+)?\n(.*?)```'
         bloques = re.findall(patron_bloques, resultado_final, re.DOTALL)
         
         archivos_procesados = []
