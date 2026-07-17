@@ -2,6 +2,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentUser = null;
     let projectFiles = [];
 
+    const welcomeScreen = document.getElementById('welcome-screen');
+
     const googleLoginBtn = document.getElementById('google-login-btn');
     const userProfile = document.getElementById('user-profile');
     const userName = document.getElementById('user-name');
@@ -33,10 +35,64 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnEditCode = document.getElementById('btn-edit-code');
     const btnSaveCode = document.getElementById('btn-save-code');
     const codeEditor = document.getElementById('code-editor');
+    const btnCancelEdit = document.getElementById('btn-cancel-edit');
     const preViewer = document.getElementById('pre-viewer');
 
+    const btnToggleSidebar = document.getElementById('btn-toggle-sidebar');
+    const sidebar = document.getElementById('sidebar');
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+
     const clientIdMeta = document.querySelector('meta[name="google-client-id"]').content;
-    
+   
+    function showModal(title, message, type = 'alert', defaultValue = '') {
+        return new Promise((resolve) => {
+            const modal = document.getElementById('custom-modal');
+            const modalContent = document.getElementById('modal-content');
+            const inputEl = document.getElementById('modal-input');
+            const btnCancel = document.getElementById('modal-btn-cancel');
+            const btnConfirm = document.getElementById('modal-btn-confirm');
+
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-message').textContent = message;
+            
+            inputEl.value = defaultValue;
+            inputEl.classList.add('hidden');
+            btnCancel.classList.add('hidden');
+
+            if (type === 'prompt') {
+                inputEl.classList.remove('hidden');
+                btnCancel.classList.remove('hidden');
+            } else if (type === 'confirm') {
+                btnCancel.classList.remove('hidden');
+            }
+
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modalContent.classList.remove('scale-95');
+                if (type === 'prompt') inputEl.focus();
+            }, 10);
+
+            const closeModal = () => {
+                modal.classList.add('opacity-0');
+                modalContent.classList.add('scale-95');
+                setTimeout(() => modal.classList.add('hidden'), 200);
+                btnConfirm.onclick = null;
+                btnCancel.onclick = null;
+            };
+
+            btnConfirm.onclick = () => {
+                closeModal();
+                resolve(type === 'prompt' ? inputEl.value : true);
+            };
+
+            btnCancel.onclick = () => {
+                closeModal();
+                resolve(type === 'prompt' ? null : false);
+            };
+        });
+    }
+
     if (clientIdMeta && clientIdMeta !== "None" && clientIdMeta !== "") {
         google.accounts.id.initialize({
             client_id: clientIdMeta,
@@ -56,8 +112,18 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (data.success) {
                 currentUser = data.user;
-                googleLoginBtn.classList.add('hidden');
+                
+                // FORMA SEGURA: Escondemos el botón de Google enviándolo fuera de la pantalla
+                // Así no estorba los clics, pero evitamos que su script interno haga crash
+                googleLoginBtn.style.position = 'absolute';
+                googleLoginBtn.style.left = '-9999px';
+                googleLoginBtn.style.pointerEvents = 'none';
+                googleLoginBtn.style.opacity = '0';
+                
+                // Mostramos el perfil y le agregamos el flex de forma manual y segura
                 userProfile.classList.remove('hidden');
+                userProfile.classList.add('flex');
+                
                 userName.textContent = currentUser.nombre_completo;
                 userAvatar.src = currentUser.foto_perfil;
                 
@@ -116,16 +182,6 @@ document.addEventListener('DOMContentLoaded', () => {
         tabChat.classList.add('text-gray-400', 'hover:text-gray-200');
     });
 
-    btnViewCode.addEventListener('click', () => {
-        codeContainer.classList.remove('hidden');
-        previewContainer.classList.add('hidden');
-    });
-
-    btnViewPreview.addEventListener('click', () => {
-        codeContainer.classList.add('hidden');
-        previewContainer.classList.remove('hidden');
-        renderWebPreview();
-    });
 
     function renderWebPreview() {
         let htmlFile = projectFiles.find(f => f.ruta.endsWith('.html'));
@@ -196,14 +252,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function appendMessage(role, text) {
         const div = document.createElement('div');
-        div.className = `p-3 rounded-lg text-sm whitespace-pre-wrap ${role === 'user' ? 'bg-blue-900/30 ml-4 border border-blue-800' : 'bg-gray-700 mr-4 border border-gray-600'}`;
         
-        let displayText = text;
-        if (role === 'agent') {
-             displayText = text.replace(/```[\s\S]*?```/g, '[Código procesado y actualizado en el Explorador]');
+        if (role === 'user') {
+            div.className = 'p-3 rounded-lg text-sm bg-[#1f2937] border border-gray-700 ml-8 text-gray-200 whitespace-pre-wrap';
+            div.textContent = text;
+        } else {
+            div.className = 'p-0 text-sm mr-8 text-gray-300 chat-markdown';
+            // Sustituimos los bloques de código crudos por una cita limpia
+            let cleanText = text.replace(/```[\s\S]*?```/g, '\n> ✦ **Código procesado** y sincronizado en el explorador de archivos.\n');
+            // Usamos la librería marked para formatear el texto a HTML limpio
+            div.innerHTML = marked.parse(cleanText);
         }
 
-        div.textContent = displayText;
         chatMessages.appendChild(div);
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
@@ -230,13 +290,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderFileList() {
         fileList.innerHTML = '';
         if (projectFiles.length === 0) {
-            fileList.innerHTML = '<li class="px-4 py-2 text-gray-500">No hay archivos aún.</li>';
+            fileList.innerHTML = '<li class="px-4 py-3 text-gray-500 text-base">No hay archivos aún.</li>';
             return;
         }
 
         projectFiles.forEach(archivo => {
             const li = document.createElement('li');
-            li.className = 'px-4 py-2 hover:bg-gray-600 cursor-pointer flex items-center gap-2 truncate transition-colors';
+            // Cajas más grandes para los archivos, separadas y con letra grande
+            li.className = 'px-6 py-4 border-b border-gray-800 hover:bg-gray-700 cursor-pointer flex items-center gap-4 truncate transition-colors text-gray-200 text-lg';
             
             let icon = '📄';
             if (archivo.ruta.endsWith('.py')) icon = '🐍';
@@ -244,7 +305,8 @@ document.addEventListener('DOMContentLoaded', () => {
             else if (archivo.ruta.endsWith('.js')) icon = '💛';
             else if (archivo.ruta.endsWith('.css')) icon = '🎨';
 
-            li.innerHTML = `<span>${icon}</span> <span class="truncate">${archivo.ruta}</span>`;
+            // Iconos enormes (text-3xl)
+            li.innerHTML = `<span class="text-3xl">${icon}</span> <span class="truncate tracking-wide font-medium">${archivo.ruta}</span>`;
             
             li.addEventListener('click', () => displayCode(archivo));
             fileList.appendChild(li);
@@ -252,6 +314,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function displayCode(archivo) {
+        welcomeScreen.classList.add('hidden'); // Esconde la bienvenida
+        preViewer.classList.remove('hidden');  // Muestra el lienzo de código
         currentFilename.textContent = archivo.ruta;
         
         let lang = 'plaintext';
@@ -269,6 +333,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Mostramos botón de editar, ocultamos el de guardar
         btnEditCode.classList.remove('hidden');
         btnSaveCode.classList.add('hidden');
+        btnCancelEdit.classList.add('hidden');
         codeEditor.classList.add('hidden');
         preViewer.classList.remove('hidden');
     }
@@ -276,6 +341,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnEditCode.addEventListener('click', () => {
         preViewer.classList.add('hidden');
         codeEditor.classList.remove('hidden');
+        btnCancelEdit.classList.remove('hidden');
         btnEditCode.classList.add('hidden');
         btnSaveCode.classList.remove('hidden');
     });
@@ -294,23 +360,44 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             
             if(res.ok) {
-                // Actualizamos la memoria del frontend
                 const archivoIndex = projectFiles.findIndex(f => f.ruta === rutaActual);
                 if (archivoIndex !== -1) projectFiles[archivoIndex].contenido = nuevoContenido;
-                
-                // Volvemos al modo vista
                 displayCode({ruta: rutaActual, contenido: nuevoContenido});
-                alert("Cambios guardados correctamente.");
+                
+                // Reemplazo del alert
+                await showModal("Archivo Guardado", "Los cambios manuales se han aplicado correctamente.", "alert");
             }
+            btnCancelEdit.classList.add('hidden');
         } catch (error) {
-            alert("Error al guardar el archivo.");
+            await showModal("Error", "Ocurrió un problema al guardar el archivo.", "alert");
         }
     });
 
-    // 6. Lógica de NUEVO PROYECTO:
+    btnCancelEdit.addEventListener('click', () => {
+        // Restauramos el contenido original del archivo
+        const rutaActual = currentFilename.textContent;
+        const archivo = projectFiles.find(f => f.ruta === rutaActual);
+        if (archivo) codeEditor.value = archivo.contenido;
+
+        // Regresamos a la vista de lectura
+        codeEditor.classList.add('hidden');
+        preViewer.classList.remove('hidden');
+        
+        // Ocultamos los botones de edición y mostramos el original
+        btnCancelEdit.classList.add('hidden');
+        btnSaveCode.classList.add('hidden');
+        btnEditCode.classList.remove('hidden');
+    });
+
     btnNewChat.addEventListener('click', async () => {
         if (!currentUser) return;
-        const confirmar = confirm("¿Estás segura? Esto borrará el chat actual y los archivos generados para iniciar un proyecto en blanco y ahorrar memoria.");
+        
+        // Reemplazo del confirm feo
+        const confirmar = await showModal(
+            "¿Iniciar nuevo proyecto?", 
+            "Esto borrará el chat y los archivos actuales de la vista para iniciar un lienzo en blanco. ¿Deseas continuar?", 
+            "confirm"
+        );
         
         if (confirmar) {
             await fetch('/api/chat/new', {
@@ -319,28 +406,105 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({ usuario_id: currentUser.id })
             });
             
-            // Limpiamos la interfaz
-            chatMessages.innerHTML = '<div class="text-center text-gray-500 text-sm mt-4">Nuevo proyecto iniciado. Comienza a describir lo que necesitas.</div>';
+            chatMessages.innerHTML = '';
+            appendMessage('agent', 'Lienzo limpio. Describe el nuevo proyecto o la base de datos que deseas crear.');
             projectFiles = [];
             renderFileList();
             codeViewer.textContent = '# El código generado aparecerá aquí';
-            currentFilename.textContent = 'selecciona_un_archivo.py';
+            currentFilename.textContent = '...';
             btnEditCode.classList.add('hidden');
+            welcomeScreen.classList.remove('hidden');
+            preViewer.classList.add('hidden');
+            codeEditor.classList.add('hidden');
         }
     });
 
-    btnDownload.addEventListener('click', () => {
+    btnDownload.addEventListener('click', async () => {
         if (!currentUser) return;
         if (projectFiles.length === 0) {
-            alert("No hay archivos para descargar aún.");
+            await showModal("Proyecto Vacío", "No hay archivos generados para descargar aún.", "alert");
             return;
         }
         
-        // Aquí le preguntamos el nombre al usuario:
-        const nombreElegido = prompt("¿Qué nombre le quieres poner a tu proyecto?", "Proyecto_Cosméticos");
+        // Reemplazo del prompt feo por el input personalizado
+        const nombreElegido = await showModal(
+            "Exportar Proyecto", 
+            "Asigna un nombre sin espacios para tu archivo .zip:", 
+            "prompt", 
+            "Mi_Proyecto"
+        );
         
-        if (nombreElegido !== null) { // Si no le dio a cancelar
+        if (nombreElegido !== null && nombreElegido.trim() !== "") {
             window.location.href = `/api/download/${currentUser.id}?nombre=${encodeURIComponent(nombreElegido)}`;
+        }
+    });
+    // Modificamos un poco el cambio de pestañas del código para cambiar estilos del botón activo
+    btnViewCode.addEventListener('click', () => {
+        codeContainer.classList.remove('hidden');
+        previewContainer.classList.add('hidden');
+        btnViewCode.classList.replace('text-gray-400', 'text-blue-400');
+        btnViewCode.classList.replace('border-gray-600', 'border-blue-500');
+        btnViewCode.classList.add('bg-gray-800');
+        
+        btnViewPreview.classList.replace('text-blue-400', 'text-gray-400');
+        btnViewPreview.classList.replace('border-blue-500', 'border-gray-600');
+        btnViewPreview.classList.remove('bg-gray-800');
+    });
+
+    btnViewPreview.addEventListener('click', () => {
+        codeContainer.classList.add('hidden');
+        previewContainer.classList.remove('hidden');
+        renderWebPreview();
+        
+        btnViewPreview.classList.replace('text-gray-400', 'text-blue-400');
+        btnViewPreview.classList.replace('border-gray-600', 'border-blue-500');
+        btnViewPreview.classList.add('bg-gray-800');
+        
+        btnViewCode.classList.replace('text-blue-400', 'text-gray-400');
+        btnViewCode.classList.replace('border-blue-500', 'border-gray-600');
+        btnViewCode.classList.remove('bg-gray-800');
+    });
+    // Mostrar u ocultar el panel lateral
+    btnToggleSidebar.addEventListener('click', () => {
+        // Verificamos si estamos en un tamaño de pantalla móvil (< 768px)
+        if (window.innerWidth < 768) {
+            sidebar.classList.toggle('-translate-x-full');
+            sidebarOverlay.classList.toggle('hidden');
+        } else {
+            // En computadora, aplicamos un margen negativo para deslizarlo fuera del monitor
+            sidebar.classList.toggle('md:-ml-96');
+        }
+    });
+
+    // Cerrar el panel al hacer clic en el área oscura (solo para móviles)
+    sidebarOverlay.addEventListener('click', () => {
+        sidebar.classList.add('-translate-x-full');
+        sidebarOverlay.classList.add('hidden');
+
+    });
+    // LÓGICA DE CERRAR SESIÓN (Delegación de eventos a prueba de fallos)
+    document.addEventListener('click', async (e) => {
+        // Buscamos si el clic ocurrió dentro del botón #btn-logout o en su icono
+        const botonSalir = e.target.closest('#btn-logout');
+        
+        if (botonSalir) {
+            // Revisamos si la estructura del Modal personalizado sigue en tu HTML
+            const modalExiste = document.getElementById('custom-modal');
+            
+            if (modalExiste) {
+                // Usamos el diseño oscuro bonito
+                const confirmar = await showModal(
+                    "Cerrar Sesión", 
+                    "¿Estás segura de que deseas salir? Tu progreso actual está guardado.", 
+                    "confirm"
+                );
+                if (confirmar) window.location.reload();
+            } else {
+                // Plan de respaldo nativo si el modal se borró accidentalmente del HTML
+                if (confirm("¿Estás segura de que deseas salir? Tu progreso actual está guardado.")) {
+                    window.location.reload();
+                }
+            }
         }
     });
 });
