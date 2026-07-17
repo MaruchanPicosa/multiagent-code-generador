@@ -33,10 +33,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnEditCode = document.getElementById('btn-edit-code');
     const btnSaveCode = document.getElementById('btn-save-code');
     const codeEditor = document.getElementById('code-editor');
+    const btnCancelEdit = document.getElementById('btn-cancel-edit');
     const preViewer = document.getElementById('pre-viewer');
 
+    const btnToggleSidebar = document.getElementById('btn-toggle-sidebar');
+    const sidebar = document.getElementById('sidebar');
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+
     const clientIdMeta = document.querySelector('meta[name="google-client-id"]').content;
-    
+   
     function showModal(title, message, type = 'alert', defaultValue = '') {
         return new Promise((resolve) => {
             const modal = document.getElementById('custom-modal');
@@ -312,6 +317,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Mostramos botón de editar, ocultamos el de guardar
         btnEditCode.classList.remove('hidden');
         btnSaveCode.classList.add('hidden');
+        btnCancelEdit.classList.add('hidden');
         codeEditor.classList.add('hidden');
         preViewer.classList.remove('hidden');
     }
@@ -319,6 +325,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnEditCode.addEventListener('click', () => {
         preViewer.classList.add('hidden');
         codeEditor.classList.remove('hidden');
+        btnCancelEdit.classList.remove('hidden');
         btnEditCode.classList.add('hidden');
         btnSaveCode.classList.remove('hidden');
     });
@@ -344,9 +351,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Reemplazo del alert
                 await showModal("Archivo Guardado", "Los cambios manuales se han aplicado correctamente.", "alert");
             }
+            btnCancelEdit.classList.add('hidden');
         } catch (error) {
             await showModal("Error", "Ocurrió un problema al guardar el archivo.", "alert");
         }
+    });
+
+    btnCancelEdit.addEventListener('click', () => {
+        // Restauramos el contenido original del archivo
+        const rutaActual = currentFilename.textContent;
+        const archivo = projectFiles.find(f => f.ruta === rutaActual);
+        if (archivo) codeEditor.value = archivo.contenido;
+
+        // Regresamos a la vista de lectura
+        codeEditor.classList.add('hidden');
+        preViewer.classList.remove('hidden');
+        
+        // Ocultamos los botones de edición y mostramos el original
+        btnCancelEdit.classList.add('hidden');
+        btnSaveCode.classList.add('hidden');
+        btnEditCode.classList.remove('hidden');
     });
 
     btnNewChat.addEventListener('click', async () => {
@@ -421,4 +445,21 @@ document.addEventListener('DOMContentLoaded', () => {
         btnViewCode.classList.replace('border-blue-500', 'border-gray-600');
         btnViewCode.classList.remove('bg-gray-800');
     });
+    // Mostrar u ocultar el panel lateral
+    btnToggleSidebar.addEventListener('click', () => {
+        // Verificamos si estamos en un tamaño de pantalla móvil (< 768px)
+        if (window.innerWidth < 768) {
+            sidebar.classList.toggle('-translate-x-full');
+            sidebarOverlay.classList.toggle('hidden');
+        } else {
+            // En computadora, aplicamos un margen negativo para deslizarlo fuera del monitor
+            sidebar.classList.toggle('md:-ml-96');
+        }
     });
+
+    // Cerrar el panel al hacer clic en el área oscura (solo para móviles)
+    sidebarOverlay.addEventListener('click', () => {
+        sidebar.classList.add('-translate-x-full');
+        sidebarOverlay.classList.add('hidden');
+    });
+});
